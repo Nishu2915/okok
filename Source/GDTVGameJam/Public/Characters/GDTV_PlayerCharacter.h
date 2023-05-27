@@ -19,9 +19,6 @@ public:
 
 #pragma region Components
 private:
-	/** Camera boom positioning the camera behind the character */
-	/*UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
-	class USceneComponent* CameraRoot;*/
 
 	/** Camera boom positioning the camera behind the character */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
@@ -52,6 +49,10 @@ private:
 	/** Crouch Input Action */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	class UInputAction* CrouchAction;
+
+	/** Equip Input Action */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	class UInputAction* EquipAction;
 #pragma endregion
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Combat, meta = (AllowPrivateAccess = "true"))
@@ -73,6 +74,8 @@ private:
 
 #pragma endregion
 
+	uint8 bEquipped : 1;
+
 protected:
 #pragma region Input Funcs
 
@@ -84,6 +87,9 @@ protected:
 
 	/** Called for crouching input */
 	void ToggleCrouch(const FInputActionValue& Value);
+
+	/** Called for un/equip input */
+	void ToggleEquip(const FInputActionValue& Value);
 
 	// APawn interface
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;

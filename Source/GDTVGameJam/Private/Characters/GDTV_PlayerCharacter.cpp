@@ -37,9 +37,6 @@ AGDTV_PlayerCharacter::AGDTV_PlayerCharacter()
 	GetCharacterMovement()->BrakingDecelerationWalking = 2000.f;
 	GetCharacterMovement()->GetNavAgentPropertiesRef().bCanCrouch = true;
 
-	/*CameraRoot = CreateDefaultSubobject<USceneComponent>(TEXT("CameraRoot"));
-	CameraRoot->SetupAttachment(RootComponent);*/
-
 	// Create a camera boom (pulls in towards the player if there is a collision)
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
 	CameraBoom->SetupAttachment(GetMesh());
@@ -122,6 +119,7 @@ void AGDTV_PlayerCharacter::SetupPlayerInputComponent(class UInputComponent* Pla
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AGDTV_PlayerCharacter::Look);
 
 		EnhancedInputComponent->BindAction(CrouchAction, ETriggerEvent::Started, this, &AGDTV_PlayerCharacter::ToggleCrouch);
+		EnhancedInputComponent->BindAction(EquipAction, ETriggerEvent::Started, this, &AGDTV_PlayerCharacter::ToggleCrouch);
 
 	}
 
@@ -173,6 +171,20 @@ void AGDTV_PlayerCharacter::ToggleCrouch(const FInputActionValue& Value)
 	else
 	{
 		Crouch();
+	}
+}
+
+void AGDTV_PlayerCharacter::ToggleEquip(const FInputActionValue& Value)
+{
+	if (!CurrentWeapon) return;
+
+	if (bEquipped)
+	{
+		UnequipWeapon();
+	}
+	else
+	{
+		EquipWeapon(CurrentWeapon);
 	}
 }
 
