@@ -10,9 +10,9 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
-#include "Components/GDTV_TraceComponent.h"
 #include "Items/Weapons/BaseWeapon.h"
 #include <Kismet/KismetMathLibrary.h>
+#include "Components/GDTV_MotionWarpingComponent.h"
 
 AGDTV_PlayerCharacter::AGDTV_PlayerCharacter()
 {
@@ -50,6 +50,11 @@ AGDTV_PlayerCharacter::AGDTV_PlayerCharacter()
 
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
+	bEquipped = false;
+	bEquipping = false;
+
+	GDTV_MotionWarping = CreateDefaultSubobject<UGDTV_MotionWarpingComponent>(TEXT("GDTV_MotionWarping"));
+
 	
 }
 
@@ -80,7 +85,7 @@ void AGDTV_PlayerCharacter::EquipWeapon(ABaseWeapon* Weapon)
 {
 	if (Weapon)
 	{
-		if (CurrentWeapon)
+		if (CurrentWeapon && Weapon != CurrentWeapon)
 		{
 			CurrentWeapon->Destroy();
 		}
@@ -89,6 +94,8 @@ void AGDTV_PlayerCharacter::EquipWeapon(ABaseWeapon* Weapon)
 		Weapon->GetPickupSKMesh()->AttachToComponent(GetMesh(), TransformRules, WeaponSocketName);
 		Weapon->SetOwner(this);
 		CurrentWeapon = Weapon;
+		bEquipped = true;
+		bEquipping = false;
 	}
 }
 
@@ -98,6 +105,8 @@ void AGDTV_PlayerCharacter::UnequipWeapon()
 
 	FAttachmentTransformRules TransformRules(EAttachmentRule::SnapToTarget, true);
 	CurrentWeapon->GetPickupSKMesh()->AttachToComponent(GetMesh(), TransformRules, BackSocketName);
+	bEquipped = false;
+	bEquipping = false;
 
 }
 #pragma endregion
@@ -119,8 +128,14 @@ void AGDTV_PlayerCharacter::SetupPlayerInputComponent(class UInputComponent* Pla
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AGDTV_PlayerCharacter::Look);
 
 		EnhancedInputComponent->BindAction(CrouchAction, ETriggerEvent::Started, this, &AGDTV_PlayerCharacter::ToggleCrouch);
-		EnhancedInputComponent->BindAction(EquipAction, ETriggerEvent::Started, this, &AGDTV_PlayerCharacter::ToggleCrouch);
+		EnhancedInputComponent->BindAction(EquipAction, ETriggerEvent::Started, this, &AGDTV_PlayerCharacter::ToggleEquip);
 
+		EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Started, this, &AGDTV_PlayerCharacter::OnSprintPressed);
+		EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Completed, this, &AGDTV_PlayerCharacter::OnSprintReleased);
+
+		EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Started, this, &AGDTV_PlayerCharacter::OnAttackPressed);
+		EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Started, this, &AGDTV_PlayerCharacter::OnBlockPressed);
+		EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Completed, this, &AGDTV_PlayerCharacter::OnBlockReleased);
 	}
 
 }
@@ -163,30 +178,42 @@ void AGDTV_PlayerCharacter::Look(const FInputActionValue& Value)
 
 void AGDTV_PlayerCharacter::ToggleCrouch(const FInputActionValue& Value)
 {
-	UE_LOG(LogTemp, Warning, TEXT("%d"), );
+	if (bEquipped || bEquipping) return;
+
 	if (bIsCrouched)
 	{
 		UnCrouch();
+		SetMovementMode(EMovementSpeedMode::Walk);
 	}
 	else
 	{
 		Crouch();
+		SetMovementMode(EMovementSpeedMode::Crouch);
 	}
 }
 
 void AGDTV_PlayerCharacter::ToggleEquip(const FInputActionValue& Value)
 {
-	if (!CurrentWeapon) return;
+	if (!CurrentWeapon || !CurrentWeapon->GetPickupSKMesh()->IsVisible() || bIsCrouched || bEquipping) return;
+
+	bEquipping = true;
 
 	if (bEquipped)
 	{
-		UnequipWeapon();
+		PlayAnimMontage(UnequipMontage);
+		//UnequipWeapon();
 	}
 	else
 	{
-		EquipWeapon(CurrentWeapon);
+		//EquipWeapon(CurrentWeapon);
+		PlayAnimMontage(EquipMontage);
+
 	}
 }
+
+#pragma endregion
+
+#pragma region TurnInplace
 
 void AGDTV_PlayerCharacter::RotateInPlace(float DeltaTime)
 {

@@ -7,6 +7,14 @@
 #include "GDTV_PlayerCharacter.generated.h"
 
 
+UENUM(BlueprintType)
+enum class EMovementSpeedMode : uint8
+{
+	Crouch UMETA(DisplayName = "Crouch"),
+	Walk UMETA(DisplayName = "Walk"),
+	Sprint UMETA(DisplayName = "Sprint")
+};
+
 class ABaseWeapon;
 
 UCLASS(Blueprintable)
@@ -19,6 +27,9 @@ public:
 
 #pragma region Components
 private:
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = Components, meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class UGDTV_MotionWarpingComponent> GDTV_MotionWarping;
 
 	/** Camera boom positioning the camera behind the character */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
@@ -50,9 +61,21 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	class UInputAction* CrouchAction;
 
+	/** Sprint Input Action */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	class UInputAction* SprintAction;
+
 	/** Equip Input Action */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	class UInputAction* EquipAction;
+
+	/** Attack Input Action */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	class UInputAction* AttackAction;
+
+	/** Action Input Action */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	class UInputAction* BlockAction;
 #pragma endregion
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Combat, meta = (AllowPrivateAccess = "true"))
@@ -75,6 +98,7 @@ private:
 #pragma endregion
 
 	uint8 bEquipped : 1;
+	uint8 bEquipping : 1;
 
 protected:
 #pragma region Input Funcs
@@ -99,12 +123,32 @@ protected:
 	virtual void Tick(float DeltaTime);
 public:
 
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnSprintPressed(const FInputActionValue& Value);
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnSprintReleased(const FInputActionValue& Value);
+	UFUNCTION(BlueprintImplementableEvent)
+	void SetMovementMode(EMovementSpeedMode Mode);
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnAttackPressed(const FInputActionValue& Value);
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnBlockPressed(const FInputActionValue& Value);
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnBlockReleased(const FInputActionValue& Value);
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Combat)
 	FName WeaponSocketName;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Combat)
 	FName BackSocketName;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Combat)
+	TObjectPtr<UAnimMontage> EquipMontage;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Combat)
+	TObjectPtr<UAnimMontage> UnequipMontage;
+
+	UFUNCTION(BlueprintCallable)
 	void EquipWeapon(ABaseWeapon* Weapon);
+	UFUNCTION(BlueprintCallable)
 	void UnequipWeapon();
 
 #pragma region Getter
@@ -117,6 +161,8 @@ public:
 	FORCEINLINE float GetAO_Pitch() const { return AO_Pitch; }
 	FORCEINLINE ETurningInPlace GetTurningInPlace() const { return TurningInPlace; }
 	FORCEINLINE bool ShouldRotateRootBone() const { return bRotateRootBone; }
+	UFUNCTION(BlueprintPure)
+	FORCEINLINE bool IsEquipped() const { return bEquipped; }
 
 #pragma endregion
 };

@@ -28,13 +28,8 @@ class AGDTVGameJamCharacter : public ACharacter, public IHitInterface
 	GENERATED_BODY()
 private:
 
-	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = Components, meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<UGDTV_MotionWarpingComponent> GDTV_MotionWarping;
 	
-	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = Components, meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<UGDTV_StatusComponent> GDTV_StatusComponent;
-
-
+	
 public:
 	AGDTVGameJamCharacter();
 	

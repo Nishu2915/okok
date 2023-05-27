@@ -2,40 +2,27 @@
 
 
 #include "Items/Weapons/BaseWeapon.h"
-#include "Components/GDTV_TraceComponent.h"
 #include "Characters/GDTV_PlayerCharacter.h"
+#include "Components/SphereComponent.h"
 
 ABaseWeapon::ABaseWeapon()
 {
-	TraceComponent = CreateDefaultSubobject<UGDTV_TraceComponent>(TEXT("TraceComponent"));
 }
 
 void ABaseWeapon::BeginPlay()
 {
 	Super::BeginPlay();
-	TraceComponent->Init(PickupSKMesh);
 }
 
 void ABaseWeapon::OnItemBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	UE_LOG(LogTemp, Warning, TEXT("Yes"));
 	if (AGDTV_PlayerCharacter* Player = Cast<AGDTV_PlayerCharacter>(OtherActor))
 	{
 		Player->EquipWeapon(this);
+		Player->UnCrouch();
+		FAttachmentTransformRules TransformRules(EAttachmentRule::SnapToTarget, true);
+		GetRootComponent()->AttachToComponent(Player->GetRootComponent(), TransformRules);
+		PickupSphereComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	}
 }
 
-void ABaseWeapon::SetWeaponState(EWeaponState NewState)
-{
-	switch (NewState)
-	{
-	case EWeaponState::EWS_Pickup:
-		break;
-	case EWeaponState::EWS_Unequipped:
-		break;
-	case EWeaponState::EWS_Equipped:
-		break;
-	default:
-		break;
-	}
-}
