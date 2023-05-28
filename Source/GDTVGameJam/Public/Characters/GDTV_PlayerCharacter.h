@@ -65,6 +65,14 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	class UInputAction* SprintAction;
 
+	/** Sprint Input Action */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	class UInputAction* RollAction;
+
+	/** Interact Input Action */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	class UInputAction* InteractAction;
+
 	/** Equip Input Action */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	class UInputAction* EquipAction;
@@ -73,32 +81,10 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	class UInputAction* AttackAction;
 
-	/** Action Input Action */
+	/** Block Input Action */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	class UInputAction* BlockAction;
 #pragma endregion
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Combat, meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<ABaseWeapon> CurrentWeapon = nullptr;
-
-#pragma region TurnInplace
-	bool bRotateRootBone;
-	float AO_Yaw;
-	float InterpAO_Yaw;
-	float AO_Pitch;
-	FRotator StartingAimRotation;
-
-	ETurningInPlace TurningInPlace = ETurningInPlace::ETIP_NotTurning;
-	void TurnInplace(float DeltaTime);
-	void RotateInPlace(float DeltaTime);
-	void AimOffset(float DeltaTime);
-	void CalculateAO_Pitch();
-	float CalculateSpeed();
-
-#pragma endregion
-
-	uint8 bEquipped : 1;
-	uint8 bEquipping : 1;
 
 protected:
 #pragma region Input Funcs
@@ -109,12 +95,6 @@ protected:
 	/** Called for looking input */
 	void Look(const FInputActionValue& Value);
 
-	/** Called for crouching input */
-	void ToggleCrouch(const FInputActionValue& Value);
-
-	/** Called for un/equip input */
-	void ToggleEquip(const FInputActionValue& Value);
-
 	// APawn interface
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 #pragma endregion
@@ -123,33 +103,10 @@ protected:
 	virtual void Tick(float DeltaTime);
 public:
 
-	UFUNCTION(BlueprintImplementableEvent)
-	void OnSprintPressed(const FInputActionValue& Value);
-	UFUNCTION(BlueprintImplementableEvent)
-	void OnSprintReleased(const FInputActionValue& Value);
-	UFUNCTION(BlueprintImplementableEvent)
-	void SetMovementMode(EMovementSpeedMode Mode);
-	UFUNCTION(BlueprintImplementableEvent)
-	void OnAttackPressed(const FInputActionValue& Value);
-	UFUNCTION(BlueprintImplementableEvent)
-	void OnBlockPressed(const FInputActionValue& Value);
-	UFUNCTION(BlueprintImplementableEvent)
-	void OnBlockReleased(const FInputActionValue& Value);
-
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Combat)
 	FName WeaponSocketName;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Combat)
 	FName BackSocketName;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Combat)
-	TObjectPtr<UAnimMontage> EquipMontage;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Combat)
-	TObjectPtr<UAnimMontage> UnequipMontage;
-
-	UFUNCTION(BlueprintCallable)
-	void EquipWeapon(ABaseWeapon* Weapon);
-	UFUNCTION(BlueprintCallable)
-	void UnequipWeapon();
 
 #pragma region Getter
 public:
@@ -157,12 +114,6 @@ public:
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 	/** Returns FollowCamera subobject **/
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
-	FORCEINLINE float GetAO_Yaw() const { return AO_Yaw; }
-	FORCEINLINE float GetAO_Pitch() const { return AO_Pitch; }
-	FORCEINLINE ETurningInPlace GetTurningInPlace() const { return TurningInPlace; }
-	FORCEINLINE bool ShouldRotateRootBone() const { return bRotateRootBone; }
-	UFUNCTION(BlueprintPure)
-	FORCEINLINE bool IsEquipped() const { return bEquipped; }
 
 #pragma endregion
 };

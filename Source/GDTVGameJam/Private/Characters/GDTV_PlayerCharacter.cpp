@@ -10,7 +10,6 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
-#include "Items/Weapons/BaseWeapon.h"
 #include <Kismet/KismetMathLibrary.h>
 #include "Components/GDTV_MotionWarpingComponent.h"
 
@@ -50,8 +49,6 @@ AGDTV_PlayerCharacter::AGDTV_PlayerCharacter()
 
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
-	bEquipped = false;
-	bEquipping = false;
 
 	GDTV_MotionWarping = CreateDefaultSubobject<UGDTV_MotionWarpingComponent>(TEXT("GDTV_MotionWarping"));
 
@@ -76,40 +73,8 @@ void AGDTV_PlayerCharacter::BeginPlay()
 void AGDTV_PlayerCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	RotateInPlace(DeltaTime);
 }
 
-
-#pragma region Weapon
-void AGDTV_PlayerCharacter::EquipWeapon(ABaseWeapon* Weapon)
-{
-	if (Weapon)
-	{
-		if (CurrentWeapon && Weapon != CurrentWeapon)
-		{
-			CurrentWeapon->Destroy();
-		}
-
-		FAttachmentTransformRules TransformRules(EAttachmentRule::SnapToTarget, true);
-		Weapon->GetPickupSKMesh()->AttachToComponent(GetMesh(), TransformRules, WeaponSocketName);
-		Weapon->SetOwner(this);
-		CurrentWeapon = Weapon;
-		bEquipped = true;
-		bEquipping = false;
-	}
-}
-
-void AGDTV_PlayerCharacter::UnequipWeapon()
-{
-	if (!CurrentWeapon) return;
-
-	FAttachmentTransformRules TransformRules(EAttachmentRule::SnapToTarget, true);
-	CurrentWeapon->GetPickupSKMesh()->AttachToComponent(GetMesh(), TransformRules, BackSocketName);
-	bEquipped = false;
-	bEquipping = false;
-
-}
-#pragma endregion
 
 #pragma region Movement
 void AGDTV_PlayerCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
@@ -127,15 +92,6 @@ void AGDTV_PlayerCharacter::SetupPlayerInputComponent(class UInputComponent* Pla
 		//Looking
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AGDTV_PlayerCharacter::Look);
 
-		EnhancedInputComponent->BindAction(CrouchAction, ETriggerEvent::Started, this, &AGDTV_PlayerCharacter::ToggleCrouch);
-		EnhancedInputComponent->BindAction(EquipAction, ETriggerEvent::Started, this, &AGDTV_PlayerCharacter::ToggleEquip);
-
-		EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Started, this, &AGDTV_PlayerCharacter::OnSprintPressed);
-		EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Completed, this, &AGDTV_PlayerCharacter::OnSprintReleased);
-
-		EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Started, this, &AGDTV_PlayerCharacter::OnAttackPressed);
-		EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Started, this, &AGDTV_PlayerCharacter::OnBlockPressed);
-		EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Completed, this, &AGDTV_PlayerCharacter::OnBlockReleased);
 	}
 
 }
@@ -176,125 +132,6 @@ void AGDTV_PlayerCharacter::Look(const FInputActionValue& Value)
 	}
 }
 
-void AGDTV_PlayerCharacter::ToggleCrouch(const FInputActionValue& Value)
-{
-	if (bEquipped || bEquipping) return;
-
-	if (bIsCrouched)
-	{
-		UnCrouch();
-		SetMovementMode(EMovementSpeedMode::Walk);
-	}
-	else
-	{
-		Crouch();
-		SetMovementMode(EMovementSpeedMode::Crouch);
-	}
-}
-
-void AGDTV_PlayerCharacter::ToggleEquip(const FInputActionValue& Value)
-{
-	if (!CurrentWeapon || !CurrentWeapon->GetPickupSKMesh()->IsVisible() || bIsCrouched || bEquipping) return;
-
-	bEquipping = true;
-
-	if (bEquipped)
-	{
-		PlayAnimMontage(UnequipMontage);
-		//UnequipWeapon();
-	}
-	else
-	{
-		//EquipWeapon(CurrentWeapon);
-		PlayAnimMontage(EquipMontage);
-
-	}
-}
-
 #pragma endregion
 
-#pragma region TurnInplace
-
-void AGDTV_PlayerCharacter::RotateInPlace(float DeltaTime)
-{
-	AimOffset(DeltaTime);
-	CalculateAO_Pitch();
-}
-
-float AGDTV_PlayerCharacter::CalculateSpeed()
-{
-	FVector Velocity = GetVelocity();
-	Velocity.Z = 0.f;
-	return Velocity.Size();
-}
-
-void AGDTV_PlayerCharacter::AimOffset(float DeltaTime)
-{
-
-	float Speed = CalculateSpeed();
-	bool bIsInAir = GetCharacterMovement()->IsFalling();
-
-
-	if (Speed == 0.f && !bIsInAir) //standing still and not jumping
-	{
-		bRotateRootBone = true;
-		FRotator CurrentAimRotation = FRotator(0.f, GetBaseAimRotation().Yaw, 0.f);
-		FRotator DeltaAimRotation = UKismetMathLibrary::NormalizedDeltaRotator(CurrentAimRotation, StartingAimRotation);
-		AO_Yaw = DeltaAimRotation.Yaw;
-		if (TurningInPlace == ETurningInPlace::ETIP_NotTurning)
-		{
-			InterpAO_Yaw = AO_Yaw;
-		}
-		bUseControllerRotationYaw = true;
-		TurnInplace(DeltaTime);
-	}
-	if (Speed > 0.f || bIsInAir) // running or jumping
-	{
-		bRotateRootBone = false;
-		StartingAimRotation = FRotator(0.f, GetBaseAimRotation().Yaw, 0.f); // pitch yaw roll
-		AO_Yaw = 0.f;
-		bUseControllerRotationYaw = true;
-		TurningInPlace = ETurningInPlace::ETIP_NotTurning;
-	}
-
-	CalculateAO_Pitch();
-}
-
-void AGDTV_PlayerCharacter::TurnInplace(float DeltaTime)
-{
-	if (AO_Yaw > 90.f)
-	{
-		TurningInPlace = ETurningInPlace::ETIP_Right;
-	}
-	else if (AO_Yaw < -90.f)
-	{
-		TurningInPlace = ETurningInPlace::ETIP_Left;
-	}
-	if (TurningInPlace != ETurningInPlace::ETIP_NotTurning)
-	{
-		InterpAO_Yaw = FMath::FInterpTo(InterpAO_Yaw, 0.f, DeltaTime, 4.f);
-		AO_Yaw = InterpAO_Yaw;
-		if (FMath::Abs(AO_Yaw) < 15.f)
-		{
-			// after turn 15 degree reset the aim rotation.
-			TurningInPlace = ETurningInPlace::ETIP_NotTurning;
-			StartingAimRotation = FRotator(0.f, GetBaseAimRotation().Yaw, 0.f);
-		}
-	}
-}
-
-void AGDTV_PlayerCharacter::CalculateAO_Pitch()
-{
-	AO_Pitch = GetBaseAimRotation().Pitch;
-	if (AO_Pitch > 90.f)
-	{
-		// snatched from stephen lol
-		// have to do this cuz it was compressed(has no negative value) to send over the internet
-		// map pitch from range [270,360) to the range [-90, 0)
-		FVector2D InRange(270.f, 360.f);
-		FVector2D OutRange(-90.f, 0.f);
-		AO_Pitch = FMath::GetMappedRangeValueClamped(InRange, OutRange, AO_Pitch);
-	}
-}
-#pragma endregion
 

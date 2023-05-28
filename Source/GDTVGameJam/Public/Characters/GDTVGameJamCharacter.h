@@ -5,7 +5,6 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "InputActionValue.h"
-#include "Interfaces/HitInterface.h"
 #include "GDTVGameJamCharacter.generated.h"
 
 
@@ -23,7 +22,7 @@ class UGDTV_MotionWarpingComponent;
 class UGDTV_StatusComponent;
 
 UCLASS(Abstract, config=Game)
-class AGDTVGameJamCharacter : public ACharacter, public IHitInterface
+class AGDTVGameJamCharacter : public ACharacter
 {
 	GENERATED_BODY()
 private:
@@ -33,6 +32,10 @@ private:
 public:
 	AGDTVGameJamCharacter();
 	
-	virtual void GetHit_Implementation(AGDTVGameJamCharacter* Hitter, const FVector& ImpactPoint) override;
+	UFUNCTION(BlueprintCallable)
+	void SetDesiredMovement(bool NewOrientRotationToMovement, bool NewUseControllerRotationYaw);
+
+	UPROPERTY(BlueprintReadWrite)
+	float Health = 100.f;
 };
 
